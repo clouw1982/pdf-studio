@@ -66,6 +66,7 @@ async function loadDocs() {
       cb,
       h('div', { class: 'nm' }, h('b', { title: d.name }, d.locked ? '🔒 ' + d.name : d.name),
         h('small', {}, `${fmtSize(d.size)} · ${new Date(d.modified * 1000).toLocaleString()}${d.source === 'inbox' ? ' · inbox' : ''}`)),
+      h('a', { class: 'dl', title: 'Download PDF', href: `/api/docs/${d.id}/download?fmt=pdf`, onclick: e => e.stopPropagation() }, '⤓'),
       h('button', { class: 'x', title: 'Delete', onclick: async e => { e.stopPropagation(); if (await confirmBox(`Delete “${d.name}”?`)) { await api(`/api/docs/${d.id}`, { method: 'DELETE' }); if (d.id === S.id) closeDoc(); loadDocs(); } } }, '✕')));
   }
   bulkState();

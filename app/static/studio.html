@@ -5,43 +5,67 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Image Studio — PDF Studio</title>
 <link rel="icon" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="/static/studio.css">
 </head>
-<body>
-<header id="bar">
-  <a class="brand" href="/" title="Back to PDF Studio"><img src="/static/favicon.svg" alt=""><span>Image Studio</span></a>
-  <nav id="menus">
-    <div class="m"><button>File</button><div class="dd">
-      <button data-cmd="new">New…<kbd>Ctrl N</kbd></button>
+<body class="studio">
+<header id="top">
+  <div class="brand"><img src="/static/favicon.svg" alt=""><span>PDF Studio</span></div>
+  <div class="modes">
+    <a id="modePdf" href="/" title="Back to the PDF editor">📄 PDF</a>
+    <a class="on" href="/studio" title="You are in Image Studio">🎨 Image Studio</a>
+  </div>
+  <div id="title" title="Click to rename">Untitled</div>
+  <span id="dirty"></span>
+  <div class="grow"></div>
+  <div class="group">
+    <button class="icon" id="btnUndo" title="Undo (Ctrl+Z)">↶</button>
+    <button class="icon" id="btnRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
+  </div>
+  <div class="group">
+    <button class="icon" data-cmd="zoomOut" title="Zoom out">−</button>
+    <button class="txt" id="zoomLbl" data-cmd="zoomFit" title="Fit on screen">100%</button>
+    <button class="icon" data-cmd="zoomIn" title="Zoom in">+</button>
+  </div>
+  <button class="txt" id="btnSave" title="Save project (Ctrl+S)">Save</button>
+  <div class="m"><button class="primary">Export ▾</button><div class="dd right">
+    <button data-cmd="placeReplace" class="src-only">Save back to PDF page</button>
+    <button data-cmd="placeInsert" class="src-only">Insert as new page after it</button>
+    <button data-cmd="placeNew">New PDF</button>
+    <hr>
+    <button data-cmd="exportPSD">Photoshop (layered PSD)</button>
+    <button data-cmd="exportPNG">PNG</button>
+    <button data-cmd="exportJPG">JPEG</button>
+    <button data-cmd="exportWEBP">WebP</button>
+  </div></div>
+  <button class="back src-only" id="btnPlace" title="Write this image into the PDF page it came from, then return">Save to PDF ↩</button>
+  <a class="icon" href="/logout" title="Log out">⏻</a>
+</header>
+
+<nav id="tools">
+  <div class="tg menus">
+    <div class="m"><button><i>📁</i><span>File ▾</span></button><div class="dd">
+      <button data-cmd="new">New image…<kbd>Ctrl N</kbd></button>
       <button data-cmd="open">Open project…<kbd>Ctrl O</kbd></button>
       <button data-cmd="importFile">Open image / PSD / PDF…</button>
       <button data-cmd="importLayer">Place image as layer…</button>
       <hr>
       <button data-cmd="save">Save<kbd>Ctrl S</kbd></button>
       <button data-cmd="saveCopy">Save a copy</button>
-      <hr>
-      <button data-cmd="placeReplace" class="src-only">Save back to PDF page</button>
-      <button data-cmd="placeInsert" class="src-only">Insert as new page after</button>
-      <button data-cmd="placeNew">Export as new PDF</button>
-      <hr>
-      <button data-cmd="exportPNG">Export PNG</button>
-      <button data-cmd="exportJPG">Export JPEG</button>
-      <button data-cmd="exportWEBP">Export WebP</button>
-      <button data-cmd="exportPSD">Export Photoshop PSD</button>
     </div></div>
-    <div class="m"><button>Edit</button><div class="dd">
+    <div class="m"><button><i>✂</i><span>Edit ▾</span></button><div class="dd">
       <button data-cmd="undo">Undo<kbd>Ctrl Z</kbd></button>
       <button data-cmd="redo">Redo<kbd>Ctrl ⇧ Z</kbd></button>
       <hr>
       <button data-cmd="copyLayerSel">Copy selection to new layer<kbd>Ctrl J</kbd></button>
-      <button data-cmd="clearSel">Clear selection area<kbd>Del</kbd></button>
+      <button data-cmd="clearSel">Clear selected area<kbd>Del</kbd></button>
       <button data-cmd="fillSel">Fill with foreground<kbd>Alt ⌫</kbd></button>
       <hr>
       <button data-cmd="selectAll">Select all<kbd>Ctrl A</kbd></button>
       <button data-cmd="deselect">Deselect<kbd>Ctrl D</kbd></button>
       <button data-cmd="invertSel">Invert selection<kbd>Ctrl ⇧ I</kbd></button>
     </div></div>
-    <div class="m"><button>Image</button><div class="dd">
+    <div class="m"><button><i>🖼</i><span>Image ▾</span></button><div class="dd">
       <button data-cmd="canvasSize">Canvas size…</button>
       <button data-cmd="imageSize">Image size…</button>
       <button data-cmd="cropToSel">Crop to selection</button>
@@ -49,10 +73,10 @@
       <hr>
       <button data-cmd="rotCW">Rotate 90° clockwise</button>
       <button data-cmd="rotCCW">Rotate 90° counter-clockwise</button>
-      <button data-cmd="flipCanvasH">Flip canvas horizontal</button>
-      <button data-cmd="flipCanvasV">Flip canvas vertical</button>
+      <button data-cmd="flipCanvasH">Flip horizontal</button>
+      <button data-cmd="flipCanvasV">Flip vertical</button>
     </div></div>
-    <div class="m"><button>Layer</button><div class="dd">
+    <div class="m"><button><i>☰</i><span>Layer ▾</span></button><div class="dd">
       <button data-cmd="newLayer">New layer<kbd>Ctrl ⇧ N</kbd></button>
       <button data-cmd="dupLayer">Duplicate layer</button>
       <button data-cmd="delLayer">Delete layer</button>
@@ -68,7 +92,7 @@
       <button data-cmd="layerUp">Bring forward<kbd>Ctrl ]</kbd></button>
       <button data-cmd="layerDown">Send backward<kbd>Ctrl [</kbd></button>
     </div></div>
-    <div class="m"><button>Adjust</button><div class="dd">
+    <div class="m"><button><i>◐</i><span>Adjust ▾</span></button><div class="dd">
       <button data-cmd="adj:brightness">Brightness / Contrast…</button>
       <button data-cmd="adj:hsl">Hue / Saturation…</button>
       <button data-cmd="adj:levels">Levels…</button>
@@ -82,68 +106,57 @@
       <button data-cmd="adj:sepia">Sepia</button>
       <button data-cmd="adj:autolevels">Auto levels</button>
     </div></div>
-    <div class="m"><button>Filter</button><div class="dd">
+    <div class="m"><button><i>✨</i><span>Filter ▾</span></button><div class="dd">
       <button data-cmd="adj:blur">Gaussian blur…</button>
-      <button data-cmd="adj:sharpen">Sharpen (unsharp mask)…</button>
+      <button data-cmd="adj:sharpen">Sharpen…</button>
       <button data-cmd="adj:noise">Add noise…</button>
       <button data-cmd="adj:pixelate">Pixelate…</button>
       <button data-cmd="adj:vignette">Vignette…</button>
       <hr>
       <button data-cmd="removeBg">✨ Remove background (AI)</button>
     </div></div>
-    <div class="m"><button>View</button><div class="dd">
-      <button data-cmd="zoomIn">Zoom in<kbd>Ctrl +</kbd></button>
-      <button data-cmd="zoomOut">Zoom out<kbd>Ctrl −</kbd></button>
-      <button data-cmd="zoomFit">Fit on screen<kbd>Ctrl 0</kbd></button>
-      <button data-cmd="zoom100">Actual pixels<kbd>Ctrl 1</kbd></button>
-    </div></div>
-  </nav>
-  <div id="title" title="Click to rename">Untitled</div>
-  <span id="dirty"></span>
-  <div class="grow"></div>
-  <button class="b" id="btnUndo" title="Undo">↶</button>
-  <button class="b" id="btnRedo" title="Redo">↷</button>
-  <span id="zoomLbl">100%</span>
-  <button class="b primary" id="btnSave">Save</button>
-  <button class="b accent src-only" id="btnPlace" title="Write this image back into the PDF page it came from">Save to PDF</button>
-</header>
+  </div>
+  <div class="tg">
+    <button data-tool="move" title="Move & transform (V)"><i>✥</i><span>Move</span></button>
+    <button data-tool="marquee" title="Rectangle select (M)"><i>⬚</i><span>Select</span></button>
+    <button data-tool="ellipseSel" title="Ellipse select"><i>◌</i><span>Ellipse</span></button>
+    <button data-tool="lasso" title="Lasso select (L)"><i>➰</i><span>Lasso</span></button>
+    <button data-tool="crop" title="Crop (C)"><i>⌗</i><span>Crop</span></button>
+  </div>
+  <div class="tg">
+    <button data-tool="brush" title="Brush (B)"><i>🖌</i><span>Brush</span></button>
+    <button data-tool="pencil" title="Pencil (N)"><i>✏</i><span>Pencil</span></button>
+    <button data-tool="eraser" title="Eraser (E)"><i>⌫</i><span>Eraser</span></button>
+    <button data-tool="fill" title="Paint bucket (G)"><i>◧</i><span>Fill</span></button>
+    <button data-tool="gradient" title="Gradient"><i>▤</i><span>Gradient</span></button>
+    <button data-tool="clone" title="Clone stamp (S) — Alt-click to set source"><i>⎘</i><span>Clone</span></button>
+  </div>
+  <div class="tg">
+    <button data-tool="text" title="Text (T)"><i>T</i><span>Text</span></button>
+    <button data-tool="shape" title="Shape (U)"><i>▭</i><span>Shape</span></button>
+    <button data-tool="eyedropper" title="Eyedropper (I)"><i>⦿</i><span>Pick colour</span></button>
+  </div>
+  <div class="tg">
+    <button data-tool="hand" title="Hand (H / hold Space)"><i>✋</i><span>Pan</span></button>
+    <button data-tool="zoom" title="Zoom (Z) — Alt-click to zoom out"><i>🔍</i><span>Zoom</span></button>
+  </div>
+  <div class="tg colours">
+    <div class="swatches" title="Foreground / background colour">
+      <input type="color" id="fg" value="#1b1d23" title="Foreground colour">
+      <input type="color" id="bg" value="#ffffff" title="Background colour">
+    </div>
+    <div class="swbtns"><button id="swap" title="Swap colours (X)">⇆</button><button id="resetC" title="Default colours (D)">◩</button></div>
+  </div>
+</nav>
 
 <div id="opts"></div>
 
 <main>
-  <aside id="tools">
-    <button data-tool="move" title="Move & transform (V)">✥</button>
-    <button data-tool="marquee" title="Rectangle select (M)">⬚</button>
-    <button data-tool="ellipseSel" title="Ellipse select">◌</button>
-    <button data-tool="lasso" title="Lasso select (L)">➰</button>
-    <button data-tool="crop" title="Crop (C)">⌗</button>
-    <hr>
-    <button data-tool="brush" title="Brush (B)">🖌</button>
-    <button data-tool="pencil" title="Pencil (N)">✏</button>
-    <button data-tool="eraser" title="Eraser (E)">⌫</button>
-    <button data-tool="fill" title="Paint bucket (G)">◧</button>
-    <button data-tool="gradient" title="Gradient">▤</button>
-    <button data-tool="clone" title="Clone stamp (S) — Alt-click to set source">⎘</button>
-    <hr>
-    <button data-tool="text" title="Text (T)">T</button>
-    <button data-tool="shape" title="Shape (U)">▭</button>
-    <button data-tool="eyedropper" title="Eyedropper (I)">⦿</button>
-    <hr>
-    <button data-tool="hand" title="Hand (H / hold Space)">✋</button>
-    <button data-tool="zoom" title="Zoom (Z) — Alt-click to zoom out">🔍</button>
-    <div class="swatches">
-      <input type="color" id="fg" value="#1b1d23" title="Foreground colour">
-      <input type="color" id="bg" value="#ffffff" title="Background colour">
-      <button id="swap" title="Swap colours (X)">⇆</button>
-      <button id="resetC" title="Default colours (D)">◩</button>
-    </div>
-  </aside>
-
-  <section id="stage">
+  <div id="stage">
     <canvas id="view"></canvas>
     <div id="overlay"></div>
     <div id="hint"></div>
-  </section>
+  </div>
 
   <aside id="panels">
     <div class="panel" id="propsPanel">

@@ -6,6 +6,7 @@ function openStudio(pno = S.cur) {
   location.href = `/studio?doc=${S.id}&page=${pno}`;
 }
 $('#pgStudio').onclick = () => openStudio(S.cur);
+$('#modeStudio').onclick = e => { if (S.id) { e.preventDefault(); openStudio(S.cur); } };
 ACTIONS.studioPage = () => openStudio(S.cur);
 
 /* ------------------------------------------------------------------ batch actions */

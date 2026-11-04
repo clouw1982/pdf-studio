@@ -113,10 +113,10 @@ function draw() {
   if (comp.width !== D.w || comp.height !== D.h) { comp.width = D.w; comp.height = D.h; }
   compose(cctx);
   const c = vctx;
-  c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#17191d'; c.fillRect(0, 0, view.width, view.height);
+  c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#e4e6ea'; c.fillRect(0, 0, view.width, view.height);
   c.setTransform(dpr * V.z, 0, 0, dpr * V.z, V.px * dpr, V.py * dpr);
   if (!checker) { const p = newCanvas(16, 16), x = p.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 16, 16); x.fillStyle = '#d5d7dc'; x.fillRect(0, 0, 8, 8); x.fillRect(8, 8, 8, 8); checker = c.createPattern(p, 'repeat'); }
-  c.save(); c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = 18 / V.z; c.fillStyle = '#fff'; c.fillRect(0, 0, D.w, D.h); c.restore();
+  c.save(); c.shadowColor = 'rgba(20,22,30,.22)'; c.shadowBlur = 18 / V.z; c.fillStyle = '#fff'; c.fillRect(0, 0, D.w, D.h); c.restore();
   c.save(); c.setTransform(dpr, 0, 0, dpr, V.px * dpr, V.py * dpr); c.fillStyle = checker; c.fillRect(0, 0, D.w * V.z, D.h * V.z); c.restore();
   c.imageSmoothingEnabled = V.z < 2; c.imageSmoothingQuality = 'high';
   c.drawImage(comp, 0, 0);
@@ -885,8 +885,15 @@ $$('[data-cmd]').forEach(b => b.addEventListener('click', () => cmd(b.dataset.cm
 /* ------------------------------------------------------------------ menus */
 function closeMenus() { $$('.m.open').forEach(m => m.classList.remove('open')); }
 $$('.m>button').forEach(b => {
-  b.addEventListener('click', e => { e.stopPropagation(); const m = b.parentElement, open = m.classList.contains('open'); closeMenus(); if (!open) m.classList.add('open'); });
-  b.addEventListener('mouseenter', () => { if ($('.m.open') && !b.parentElement.classList.contains('open')) { closeMenus(); b.parentElement.classList.add('open'); } });
+  const openMenu = () => {
+    const m = b.parentElement, dd = m.querySelector('.dd'), r = b.getBoundingClientRect();
+    m.classList.add('open');
+    const w = dd.offsetWidth || 260;
+    dd.style.top = r.bottom + 4 + 'px';
+    dd.style.left = (dd.classList.contains('right') ? Math.max(8, r.right - w) : Math.min(r.left, innerWidth - w - 8)) + 'px';
+  };
+  b.addEventListener('click', e => { e.stopPropagation(); const open = b.parentElement.classList.contains('open'); closeMenus(); if (!open) openMenu(); });
+  b.addEventListener('mouseenter', () => { if ($('.m.open') && !b.parentElement.classList.contains('open')) { closeMenus(); openMenu(); } });
 });
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.m')) closeMenus(); });
 
@@ -942,6 +949,7 @@ async function load(pid) {
   S.active = Math.max(0, D.layers.findIndex(L => L.type === 'text') - 1); if (S.active < 0) S.active = 0;
   $('#title').textContent = D.name; document.title = D.name + ' — Image Studio';
   $$('.src-only').forEach(el => el.classList.toggle('hidden', !D.source));
+  $('#modePdf').href = D.source ? `/?doc=${D.source.doc_id}` : '/';
   S.hist = []; S.hidx = -1; renderHistory(); setDirty(false); fit(); renderLayers(); renderProps();
   history.replaceState(null, '', '/studio?p=' + pid);
 }
@@ -969,11 +977,12 @@ async function place(mode) {
   const t = newCanvas(D.w, D.h); compose(t.getContext('2d'), { rasterOnly: true }); x.drawImage(t, 0, 0);
   const texts = D.layers.filter(L => L.type === 'text' && L.visible).map(L => ({ text: L.text, x: L.x, y: L.y, size: L.size, color: L.color, family: L.family, bold: L.bold, italic: L.italic, sx: L.sx, opacity: L.opacity, visible: true }));
   const res = await busy(mode === 'new' ? 'Creating PDF…' : 'Saving into the PDF…', () => api(`/api/studio/projects/${D.id}/place`, { json: { raster: r.toDataURL('image/jpeg', 0.92), texts, mode } }));
-  const t2 = toast(h('span', {}, mode === 'new' ? 'PDF created. ' : 'PDF page updated (you can undo it in PDF Studio). ', h('a', { href: `/?doc=${res.doc_id}`, style: { color: '#9cc0ff' } }, 'Open in PDF Studio →')), '', 9000);
+  toast(h('span', {}, mode === 'new' ? 'PDF created. ' : 'PDF page updated (you can undo it in PDF Studio). ', h('a', { href: `/?doc=${res.doc_id}`, style: { color: '#ffb59f' } }, 'Open in PDF →')), '', 9000);
+  return res;
 }
 
 $('#btnSave').onclick = () => save();
-$('#btnPlace').onclick = () => place('replace');
+$('#btnPlace').onclick = async () => { const r = await place('replace'); if (r) location.href = `/?doc=${r.doc_id}`; };
 $('#btnUndo').onclick = undo; $('#btnRedo').onclick = redo;
 $('#title').onclick = async () => { const f = await form('Rename', [['n', 'Name', D.name]]); if (f && f.n.trim()) { D.name = f.n.trim(); $('#title').textContent = D.name; setDirty(); } };
 window.addEventListener('beforeunload', e => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });

@@ -11,6 +11,10 @@
 <header id="top">
   <button class="icon only-mobile" id="btnLeft" title="Panels">☰</button>
   <div class="brand"><img src="/static/favicon.svg" alt=""><span>PDF Studio</span></div>
+  <div class="modes">
+    <a class="on" href="/" title="PDF editor">📄 PDF</a>
+    <a id="modeStudio" href="/studio" title="Open the current page in Image Studio">🎨 Image Studio</a>
+  </div>
   <div id="docTitle" title="Click to rename"></div>
   <div class="grow"></div>
   <div class="group" id="histGroup">
@@ -52,7 +56,6 @@
       <label class="dpi">Image / PSD resolution <select id="exportDpi"><option>72</option><option>100</option><option selected>150</option><option>200</option><option>300</option></select> dpi</label>
     </div>
   </div>
-  <a class="txtlink" href="/studio" title="Photoshop-style layered image editor">🎨 Image Studio</a>
   <a class="icon" href="/logout" title="Log out">⏻</a>
   <button class="icon only-mobile" id="btnRight" title="Tools">⚙</button>
 </header>

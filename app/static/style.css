@@ -230,3 +230,12 @@ input.fld[type=checkbox]{margin:0;accent-color:var(--sel)}
 #cmpList .k{font-size:10.5px;padding:1px 6px;border-radius:8px;text-transform:uppercase}
 .k.added{background:#dff3e7;color:var(--ok)}.k.removed{background:#fde4e1;color:#b42318}.k.changed{background:#fff1d6;color:var(--warn)}
 @media (max-width:1000px){.txtlink{display:none}#cmpSide{display:none}}
+
+/* PDF | Image Studio switch, shared by both headers */
+.modes{display:flex;background:#262931;border:1px solid #363a44;border-radius:8px;padding:2px;margin-left:6px;flex:none}
+.modes a{color:#b9bdc7;text-decoration:none;font-size:12.5px;padding:5px 11px;border-radius:6px;white-space:nowrap}
+.modes a:hover{color:#fff;background:#30333c}
+.modes a.on{background:#fff;color:var(--ink);font-weight:600}
+#docList .dl{border:0;background:none;color:#7c8290;padding:2px 6px;font-size:14px;text-decoration:none}
+#docList .dl:hover{color:var(--acc)}
+@media (max-width:1000px){.modes a{padding:5px 7px;font-size:12px}}
