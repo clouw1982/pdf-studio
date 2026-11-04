@@ -31,12 +31,14 @@ SECRET_KEY=$SK
 # Resolution of PSDs made from the inbox (150 = good for screen, 300 = print)
 PSD_DPI=150
 # Port and address the editor listens on (set BIND_ADDR to your Tailscale IP to keep it private)
-PORT=8080
+PORT=${PORT:-8080}
 BIND_ADDR=0.0.0.0
 # For HTTPS: your domain, then run: docker compose --profile https up -d
 DOMAIN=
 ENV
 fi
+
+set -a; . ./.env; set +a
 
 say "Preparing data folders…"
 mkdir -p data/inbox data/output data/library data/tmp
@@ -55,14 +57,14 @@ cat <<MSG
 
   ✅ PDF Studio is running.
 
-  Open:      http://$IP:8080 ${TS:+  (or privately: http://$TS:8080)}
+  Open:      http://$IP:$PORT ${TS:+  (or privately: http://$TS:$PORT)}
   Password:  $PW   (change it in $(pwd)/.env, then: docker compose up -d)
 
   Drop-folder:  $(pwd)/data/inbox      → layered PSDs appear in $(pwd)/data/output/<name>/
   From your Mac:  gcloud compute scp report.pdf <vm-name>:$(pwd)/data/inbox/
 
   Google Cloud firewall (only if you want it on the public internet):
-    gcloud compute firewall-rules create pdfstudio --allow tcp:8080 --target-tags pdfstudio
+    gcloud compute firewall-rules create pdfstudio --allow tcp:$PORT --target-tags pdfstudio
     gcloud compute instances add-tags <vm-name> --tags pdfstudio --zone <zone>
 
 MSG
