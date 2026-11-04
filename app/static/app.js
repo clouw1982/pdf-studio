@@ -72,7 +72,7 @@ async function loadDocs() {
 }
 function bulkState() {
   const n = $$('#docList input:checked').length;
-  $('#btnMerge').disabled = n < 2; $('#btnCompare').disabled = n !== 2;
+  $('#btnMerge').disabled = n < 2; $('#btnCompare').disabled = n !== 2; $('#btnBatch').disabled = n < 1;
 }
 const checkedIds = () => $$('#docList input:checked').map(c => c.dataset.id);
 
@@ -298,7 +298,7 @@ function imageInteractions(pno, im, b) {
     b.append(h('div', { class: 'handle' }), h('div', { class: 'floatbar' },
       h('button', { onclick: ev => { ev.stopPropagation(); replaceImage(pno, im); } }, 'Replace'),
       h('button', { onclick: ev => { ev.stopPropagation(); op({ op: 'delete_image', page: pno, bbox: im.bbox }, 'Deleting image…'); } }, 'Delete'),
-      h('button', { onclick: ev => { ev.stopPropagation(); window.open(`/api/docs/${S.id}/page/${pno}.png?scale=3&v=${ver()}`); } }, 'Open page image')));
+      h('button', { onclick: ev => { ev.stopPropagation(); openStudio(pno); } }, '🎨 Image Studio')));
     const resize = e.target.classList.contains('handle');
     const sx = e.clientX, sy = e.clientY, r0 = [...im.bbox];
     const ratio = (r0[2] - r0[0]) / (r0[3] - r0[1]);
@@ -663,6 +663,7 @@ $('#btnAttach').onclick = () => {
 
 async function renderSide() {
   if (!S.doc) return;
+  if (window.renderSigs) renderSigs();
   $('#protState').textContent = S.doc.protect ? '🔒 Password protection will be applied when you export the PDF.' : '';
   $('#docStats').textContent = `${S.doc.pages.length} pages · ${fmtSize(S.doc.size)} · ${S.doc.versions.length} versions`;
   // forms

@@ -35,6 +35,14 @@ PORT=${PORT:-8080}
 BIND_ADDR=0.0.0.0
 # For HTTPS: your domain, then run: docker compose --profile https up -d
 DOMAIN=
+# Optional: send signature requests by email
+#SMTP_HOST=smtp.gmail.com
+#SMTP_PORT=587
+#SMTP_USER=
+#SMTP_PASSWORD=
+#SMTP_FROM=
+#NOTIFY_EMAIL=
+#SENDER_NAME=
 ENV
 fi
 

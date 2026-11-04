@@ -52,6 +52,7 @@
       <label class="dpi">Image / PSD resolution <select id="exportDpi"><option>72</option><option>100</option><option selected>150</option><option>200</option><option>300</option></select> dpi</label>
     </div>
   </div>
+  <a class="txtlink" href="/studio" title="Photoshop-style layered image editor">🎨 Image Studio</a>
   <a class="icon" href="/logout" title="Log out">⏻</a>
   <button class="icon only-mobile" id="btnRight" title="Tools">⚙</button>
 </header>
@@ -116,8 +117,9 @@
         <label class="chk"><input type="checkbox" id="chkPsd"> Also make layered PSDs</label>
       </div>
       <div class="row bulk">
-        <button id="btnMerge" disabled>Merge selected</button>
+        <button id="btnMerge" disabled>Merge</button>
         <button id="btnCompare" disabled>Compare 2</button>
+        <button id="btnBatch" disabled>Batch…</button>
       </div>
       <ul id="docList"></ul>
     </section>
@@ -132,6 +134,7 @@
         <button id="pgInsert" title="Insert file after current">⤓</button>
         <button id="pgSplit" title="Split document">✂</button>
       </div>
+      <button id="pgStudio" class="studio-btn" title="Open this page as editable layers">🎨 Edit page in Image Studio</button>
       <small class="hint">Drag to reorder · Shift/Ctrl-click to multi-select</small>
       <div id="thumbs"></div>
     </section>
@@ -174,6 +177,13 @@
       <ul id="annotList" class="small"></ul>
       <div class="row"><button data-act="flattenAnnots">Flatten comments</button></div>
     </details>
+    <details open><summary>Signatures</summary>
+      <div class="row wrap">
+        <button data-act="requestSign" class="primary">Request signature…</button>
+        <button data-act="sigField">Add signature field</button>
+      </div>
+      <ul id="sigList" class="small"></ul>
+    </details>
     <details open><summary>Protect & redact</summary>
       <div class="row wrap">
         <button data-act="protect">Password protect</button>
@@ -202,6 +212,7 @@
     </details>
     <details open><summary>Document</summary>
       <div class="row wrap">
+        <button data-act="studioPage">🎨 Image Studio</button>
         <button data-act="metadata">Properties</button>
         <button data-act="readtext">Read aloud</button>
         <button data-act="wordcount">Word count</button>
@@ -212,10 +223,30 @@
   </aside>
 </main>
 
+<div id="cmpView" class="hidden">
+  <div class="cmpbar">
+    <b id="cmpTitle">Compare</b>
+    <div class="seg" id="cmpModes">
+      <button data-m="diff" class="on">Differences</button><button data-m="side">Side by side</button><button data-m="overlay">Overlay</button><button data-m="text">Text changes</button>
+    </div>
+    <label>Page <select id="cmpPage"></select></label>
+    <button id="cmpPrev">◀</button><button id="cmpNext">▶</button>
+    <label id="cmpSlideWrap" class="hidden">Blend <input type="range" id="cmpSlide" min="0" max="100" value="50"></label>
+    <label id="cmpSensWrap">Sensitivity <select id="cmpSens"><option value="20">High</option><option value="40" selected>Normal</option><option value="80">Low</option></select></label>
+    <span class="grow"></span>
+    <span id="cmpLegend"><i class="lg r"></i> removed <i class="lg g"></i> added</span>
+    <button id="cmpClose" class="primary">Close</button>
+  </div>
+  <div class="cmpbody">
+    <div id="cmpStage"></div>
+    <aside id="cmpSide"><h4>Changes on this page</h4><ul id="cmpList"></ul></aside>
+  </div>
+</div>
 <div id="toasts"></div>
 <div id="modal" class="hidden"><div class="box"><h3 id="mTitle"></h3><div id="mBody"></div><div class="row end" id="mBtns"></div></div></div>
 <input type="file" id="fileAny" multiple hidden>
 <input type="file" id="fileImg" accept="image/*" hidden>
 <script src="/static/app.js"></script>
+<script src="/static/app2.js"></script>
 </body>
 </html>

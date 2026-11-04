@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Review & sign</title>
+<link rel="icon" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/sign.css">
+</head>
+<body>
+<header>
+  <div class="who">
+    <b id="docName">Loading…</b>
+    <span id="from"></span>
+  </div>
+  <button id="btnNext" class="ghost">Next field ↓</button>
+</header>
+<div id="msg" class="hidden"></div>
+<main id="pages"></main>
+<footer id="foot" class="hidden">
+  <div class="prog"><span id="progTxt"></span></div>
+  <label class="nm">Full name <input id="typedName" autocomplete="name" placeholder="Type your full name"></label>
+  <label class="agree"><input type="checkbox" id="agree"> I agree to sign this document electronically</label>
+  <div class="btns">
+    <button id="btnDecline" class="ghost">Decline</button>
+    <button id="btnFinish" class="primary">Finish & sign</button>
+  </div>
+</footer>
+<div id="done" class="hidden"><div class="card">
+  <div class="tick">✓</div>
+  <h2 id="doneTitle">Signed</h2>
+  <p id="doneText"></p>
+  <a id="dl" class="primary btn hidden" href="#">Download signed copy</a>
+</div></div>
+<div id="modal" class="hidden"><div class="box">
+  <h3>Your signature</h3>
+  <div class="tabs"><button data-m="draw" class="on">Draw</button><button data-m="type">Type</button><button data-m="upload">Upload</button></div>
+  <canvas id="pad" width="900" height="320"></canvas>
+  <div id="typeBox" class="hidden"><input id="typed" placeholder="Type your name"><select id="font">
+    <option value='"Brush Script MT", "Segoe Script", cursive'>Script</option><option value='"Snell Roundhand", "Apple Chancery", cursive'>Elegant</option><option value='Georgia, serif'>Classic</option></select></div>
+  <div id="upBox" class="hidden"><input type="file" id="upFile" accept="image/*"></div>
+  <div class="row"><button id="padClear" class="ghost">Clear</button><span class="grow"></span><button id="padCancel" class="ghost">Cancel</button><button id="padOk" class="primary">Adopt & sign</button></div>
+</div></div>
+<div id="toast" class="hidden"></div>
+<script src="/static/sign.js"></script>
+</body>
+</html>

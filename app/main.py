@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from starlette.background import BackgroundTask
 
-from . import convert, engine, store, watcher
+from . import batch, convert, engine, signing, store, studio, vcompare, watcher
 from .psd_export import pdf_to_psds
 
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
@@ -28,7 +28,8 @@ fitz.TOOLS.mupdf_display_errors(False)
 
 # ---------------------------------------------------------------- auth
 
-OPEN_PATHS = ("/login", "/api/login", "/static/login.css", "/static/favicon.svg", "/healthz")
+OPEN_PATHS = ("/login", "/api/login", "/static/login.css", "/static/favicon.svg", "/healthz",
+              "/sign/", "/api/sign/", "/static/sign.")
 
 
 @app.middleware("http")
@@ -222,12 +223,12 @@ def text(doc_id: str):
     return {"pages": [p.get_text() for p in d]}
 
 
-@app.post("/api/docs/{doc_id}/op")
-def run_op(doc_id: str, p: dict = Body(...)):
+def apply_op(doc_id: str, p: dict) -> dict:
+    """Run one operation on a document and commit a new version. Raises on error."""
     name = p.get("op")
     m = store.meta(doc_id)
     with store.lock(doc_id):
-        try:
+        if True:
             # ops that produce whole new files or new documents
             if name == "unlock":
                 d = fitz.open(store.path(doc_id))
@@ -295,10 +296,18 @@ def run_op(doc_id: str, p: dict = Body(...)):
             res = fn(d, p, ctx)
             store.commit_doc(doc_id, d, p.get("label") or name.replace("_", " ").capitalize())
             return {"ok": True, "result": res, "doc": _summary(doc_id)}
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(400, f"{type(e).__name__}: {e}")
+
+
+@app.post("/api/docs/{doc_id}/op")
+def run_op(doc_id: str, p: dict = Body(...)):
+    try:
+        return apply_op(doc_id, p)
+    except HTTPException:
+        raise
+    except KeyError:
+        raise HTTPException(404, "Document not found")
+    except Exception as e:
+        raise HTTPException(400, f"{type(e).__name__}: {e}")
 
 
 @app.post("/api/docs/{doc_id}/insert-file")
@@ -403,6 +412,260 @@ def output_delete(path: str):
     else:
         f.unlink()
     return {"ok": True}
+
+
+
+# ---------------------------------------------------------------- Image Studio
+
+def _studio(fn, *a):
+    try:
+        return fn(*a)
+    except KeyError:
+        raise HTTPException(404, "Project not found")
+
+
+@app.get("/studio")
+def studio_page():
+    return FileResponse(STATIC / "studio.html")
+
+
+@app.get("/api/studio/projects")
+def studio_list():
+    return studio.list_projects()
+
+
+@app.post("/api/studio/from-page")
+def studio_from_page(doc_id: str = Body(...), page: int = Body(0), dpi: int = Body(150)):
+    _open(doc_id)
+    return studio.from_page(doc_id, page, max(50, min(dpi, 400)))
+
+
+@app.post("/api/studio/from-file")
+def studio_from_file(file: UploadFile = File(...)):
+    td = _tmpdir()
+    try:
+        name = Path(file.filename or "image").name
+        raw = td / name
+        with raw.open("wb") as fh:
+            shutil.copyfileobj(file.file, fh)
+        ext = raw.suffix.lower()
+        if ext not in (".psd", ".psb", ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff"):
+            pdf = convert.to_pdf(raw, td)
+            return studio.from_file(pdf, Path(name).stem)
+        return studio.from_file(raw, Path(name).stem)
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
+
+
+@app.post("/api/studio/new")
+def studio_new(name: str = Body("Untitled"), w: int = Body(1920), h: int = Body(1080), bg: str = Body("#ffffff")):
+    return studio.blank(name, w, h, bg)
+
+
+@app.get("/api/studio/projects/{pid}")
+def studio_get(pid: str):
+    return _studio(studio.get, pid)
+
+
+@app.put("/api/studio/projects/{pid}")
+def studio_save(pid: str, body: dict = Body(...)):
+    return _studio(studio.save, pid, body)
+
+
+@app.delete("/api/studio/projects/{pid}")
+def studio_delete(pid: str):
+    _studio(studio.delete, pid)
+    return {"ok": True}
+
+
+@app.post("/api/studio/projects/{pid}/duplicate")
+def studio_dup(pid: str):
+    return _studio(studio.duplicate, pid)
+
+
+@app.get("/api/studio/projects/{pid}/layer/{lid}.png")
+def studio_layer(pid: str, lid: str):
+    try:
+        f = studio.layer_path(pid, lid)
+    except KeyError:
+        raise HTTPException(404)
+    if not f.exists():
+        raise HTTPException(404)
+    return FileResponse(f, media_type="image/png", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/api/studio/projects/{pid}/thumb.png")
+def studio_thumb(pid: str):
+    try:
+        f = studio._pid_dir(pid) / "thumb.png"
+    except KeyError:
+        raise HTTPException(404)
+    if not f.exists():
+        f = studio._pid_dir(pid) / f"{studio.get(pid)['layers'][0]['id']}.png"
+    return FileResponse(f, media_type="image/png", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/api/studio/projects/{pid}/psd")
+def studio_psd(pid: str):
+    p = _studio(studio.get, pid)
+    td = _tmpdir()
+    out = td / (("".join(c for c in p["name"] if c not in '/\\:*?"<>|') or "image") + ".psd")
+    studio.to_psd(pid, out)
+    return FileResponse(out, filename=out.name, background=_cleanup(td))
+
+
+@app.post("/api/studio/projects/{pid}/place")
+def studio_place(pid: str, body: dict = Body(...)):
+    try:
+        return _studio(studio.place_into_pdf, pid, body)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(400, f"{type(e).__name__}: {e}")
+
+
+@app.post("/api/studio/remove-bg")
+def studio_remove_bg(data: str = Body(..., embed=True)):
+    try:
+        return {"data": studio.remove_background(data)}
+    except Exception as e:
+        raise HTTPException(500, f"Background removal failed: {e}")
+
+
+# ---------------------------------------------------------------- batch
+
+@app.post("/api/batch")
+def batch_start(ids: list[str] = Body(...), steps: list[dict] = Body([]), export: str | None = Body(None),
+                dpi: int = Body(150)):
+    if not ids:
+        raise HTTPException(400, "Choose at least one file")
+    def runner(doc_id, p):
+        return apply_op(doc_id, p)
+    return batch.start(ids, steps, export or None, runner, dpi)
+
+
+@app.get("/api/batch")
+def batch_list():
+    return batch.recent()
+
+
+@app.get("/api/batch/{jid}")
+def batch_get(jid: str):
+    j = batch.get(jid)
+    if not j:
+        raise HTTPException(404)
+    return j
+
+
+# ---------------------------------------------------------------- visual compare
+
+@app.get("/api/vcompare")
+def vcompare_page(a: str, b: str, pa: int = 0, pb: int = 0, scale: float = 1.5, threshold: int = 40):
+    try:
+        res = vcompare.compare_pages(a, pa, b, pb, max(0.3, min(scale, 3)), threshold)
+    except KeyError:
+        raise HTTPException(404)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    png = res.pop("png")
+    import base64
+    res["image"] = "data:image/png;base64," + base64.b64encode(png).decode()
+    return res
+
+
+@app.get("/api/vcompare/summary")
+def vcompare_summary(a: str, b: str):
+    return vcompare.summary(a, b)
+
+
+# ---------------------------------------------------------------- signatures (sender)
+
+def _base_url(request: Request):
+    return os.environ.get("PUBLIC_URL") or str(request.base_url).rstrip("/")
+
+
+@app.post("/api/docs/{doc_id}/sign-request")
+def sign_request(doc_id: str, request: Request, signer_name: str = Body(...), signer_email: str = Body(""),
+                 message: str = Body(""), expires_days: int = Body(30), sender: str = Body("")):
+    _open(doc_id)
+    if not signer_name.strip():
+        raise HTTPException(400, "Signer name is required")
+    r = signing.create(doc_id, signer_name, signer_email, message, expires_days, _base_url(request),
+                       sender.strip() or os.environ.get("SENDER_NAME", "PDF Studio"))
+    return {k: r.get(k) for k in ("token", "url", "emailed", "email_error", "status")} | {"smtp": signing.smtp_ready()}
+
+
+@app.get("/api/sign-requests")
+def sign_requests():
+    return {"requests": signing.list_requests(), "smtp": signing.smtp_ready()}
+
+
+@app.delete("/api/sign-requests/{token}")
+def sign_cancel(token: str):
+    try:
+        signing.cancel(token)
+    except KeyError:
+        raise HTTPException(404)
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------- signatures (public signer)
+
+def _client(request: Request):
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else None)
+    return ip, request.headers.get("user-agent", "")
+
+
+@app.get("/sign/{token}")
+def sign_page(token: str):
+    return FileResponse(STATIC / "sign.html")
+
+
+@app.get("/api/sign/{token}")
+def sign_info(token: str, request: Request):
+    try:
+        return signing.public_info(token, *_client(request))
+    except KeyError:
+        raise HTTPException(404, "This signing link is not valid")
+
+
+@app.get("/api/sign/{token}/page/{pno}.png")
+def sign_render(token: str, pno: int, scale: float = 1.5):
+    try:
+        return Response(signing.render(token, pno, max(0.2, min(scale, 4))), media_type="image/png")
+    except (KeyError, IndexError):
+        raise HTTPException(404)
+
+
+@app.post("/api/sign/{token}/complete")
+def sign_complete(token: str, request: Request, body: dict = Body(...)):
+    try:
+        r = signing.complete(token, body, *_client(request))
+    except KeyError:
+        raise HTTPException(404)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True, "download": f"/api/sign/{token}/download", "sealed": r.get("sealed")}
+
+
+@app.post("/api/sign/{token}/decline")
+def sign_decline(token: str, request: Request, reason: str = Body("", embed=True)):
+    try:
+        signing.decline(token, reason, *_client(request))
+    except KeyError:
+        raise HTTPException(404)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
+@app.get("/api/sign/{token}/download")
+def sign_download(token: str):
+    try:
+        f, name = signing.signed_file(token)
+    except KeyError:
+        raise HTTPException(404)
+    return FileResponse(f, filename=name, media_type="application/pdf")
 
 
 # ---------------------------------------------------------------- static

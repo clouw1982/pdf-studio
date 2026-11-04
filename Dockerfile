@@ -1,7 +1,7 @@
 FROM python:3.13-slim
 
 ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
-    DATA_DIR=/data HOME=/tmp
+    DATA_DIR=/data HOME=/tmp U2NET_HOME=/opt/u2net REMBG_MODEL=isnet-general-use
 
 # OCR (tesseract + common languages), PDF/A (ghostscript), Office import (LibreOffice), fonts
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,9 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /srv
 COPY requirements.txt .
 RUN pip install -r requirements.txt
+# bake the background-removal AI model into the image (falls back to the small model if the download fails)
+RUN python -c "from rembg import new_session; new_session('isnet-general-use')" || python -c "from rembg import new_session; new_session('u2netp')"; chmod -R a+rX /opt/u2net || true
 COPY app ./app
 
-RUN useradd -u 1000 -m studio && mkdir -p /data && chown studio /data
+RUN useradd -u 1000 -m studio && mkdir -p /data /opt/u2net && chown studio /data && chown -R studio /opt/u2net
 USER studio
 VOLUME /data
 EXPOSE 8080
