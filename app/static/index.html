@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDF Studio</title>
+<link rel="icon" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header id="top">
+  <button class="icon only-mobile" id="btnLeft" title="Panels">☰</button>
+  <div class="brand"><img src="/static/favicon.svg" alt=""><span>PDF Studio</span></div>
+  <div id="docTitle" title="Click to rename"></div>
+  <div class="grow"></div>
+  <div class="group" id="histGroup">
+    <button class="icon" id="btnUndo" title="Undo (Ctrl+Z)">↶</button>
+    <button class="icon" id="btnRedo" title="Redo (Ctrl+Shift+Z)">↷</button>
+    <div class="menu-wrap">
+      <button class="icon" id="btnHistory" title="Version history">🕘</button>
+      <div class="menu" id="historyMenu"></div>
+    </div>
+  </div>
+  <div class="group">
+    <button class="icon" id="zoomOut" title="Zoom out">−</button>
+    <button class="txt" id="zoomLabel" title="Fit width">100%</button>
+    <button class="icon" id="zoomIn" title="Zoom in">+</button>
+  </div>
+  <div class="search">
+    <input id="searchBox" placeholder="Search  (Ctrl+F)" autocomplete="off">
+    <span id="searchCount"></span>
+  </div>
+  <div class="menu-wrap">
+    <button class="primary" id="btnDownload">Export ▾</button>
+    <div class="menu right" id="exportMenu">
+      <button data-fmt="pdf">PDF</button>
+      <button data-fmt="psd">Photoshop (layered PSD)</button>
+      <button data-fmt="docx">Word (.docx)</button>
+      <button data-fmt="xlsx">Excel (.xlsx) – tables</button>
+      <button data-fmt="pptx">PowerPoint (.pptx)</button>
+      <hr>
+      <button data-fmt="png">PNG images</button>
+      <button data-fmt="jpg">JPEG images</button>
+      <button data-fmt="tiff">TIFF images</button>
+      <button data-fmt="svg">SVG vector</button>
+      <hr>
+      <button data-fmt="txt">Plain text</button>
+      <button data-fmt="md">Markdown</button>
+      <button data-fmt="html">HTML</button>
+      <button data-fmt="pdfa">PDF/A (archival)</button>
+      <hr>
+      <label class="dpi">Image / PSD resolution <select id="exportDpi"><option>72</option><option>100</option><option selected>150</option><option>200</option><option>300</option></select> dpi</label>
+    </div>
+  </div>
+  <a class="icon" href="/logout" title="Log out">⏻</a>
+  <button class="icon only-mobile" id="btnRight" title="Tools">⚙</button>
+</header>
+
+<nav id="tools">
+  <div class="tg">
+    <button data-tool="select" class="on" title="Select, fill forms, manage comments (V)"><i>➚</i><span>Select</span></button>
+    <button data-tool="pan" title="Hand / pan (H)"><i>✋</i><span>Pan</span></button>
+  </div>
+  <div class="tg">
+    <button data-tool="edittext" title="Edit existing text (T)"><i>✎</i><span>Edit text</span></button>
+    <button data-tool="editimage" title="Move, resize, replace or delete images (I)"><i>▣</i><span>Edit image</span></button>
+    <button data-tool="addtext" title="Add new text to the page"><i>T</i><span>Add text</span></button>
+    <button data-tool="addimage" title="Place an image"><i>🖼</i><span>Add image</span></button>
+    <button data-tool="sign" title="Sign / initial"><i>✍</i><span>Sign</span></button>
+  </div>
+  <div class="tg">
+    <button data-tool="highlight" title="Highlight text (drag)"><i class="hl">ab</i><span>Highlight</span></button>
+    <button data-tool="underline" title="Underline text"><i><u>ab</u></i><span>Underline</span></button>
+    <button data-tool="strikeout" title="Strike through text"><i><s>ab</s></i><span>Strike</span></button>
+    <button data-tool="note" title="Sticky note"><i>🗨</i><span>Note</span></button>
+    <button data-tool="freetext" title="Text box comment"><i>☐</i><span>Text box</span></button>
+    <button data-tool="ink" title="Freehand draw"><i>〰</i><span>Draw</span></button>
+    <button data-tool="rect" title="Rectangle"><i>▭</i><span>Rect</span></button>
+    <button data-tool="circle" title="Ellipse"><i>◯</i><span>Ellipse</span></button>
+    <button data-tool="line" title="Line"><i>╱</i><span>Line</span></button>
+    <button data-tool="arrow" title="Arrow"><i>➝</i><span>Arrow</span></button>
+  </div>
+  <div class="tg">
+    <button data-tool="redact" title="Mark areas to permanently redact"><i>█</i><span>Redact</span></button>
+    <button data-tool="field" title="Create form fields"><i>⌨</i><span>Field</span></button>
+    <button data-tool="link" title="Add a link"><i>🔗</i><span>Link</span></button>
+  </div>
+</nav>
+
+<div id="props">
+  <label class="p-color">Color <input type="color" id="pColor" value="#d93025"></label>
+  <label class="p-size">Size <input type="number" id="pSize" value="12" min="4" max="200" step="0.5"></label>
+  <label class="p-family">Font <select id="pFamily"><option value="sans">Sans (Helvetica)</option><option value="serif">Serif (Times)</option><option value="mono">Mono (Courier)</option></select></label>
+  <label class="p-style"><button class="tog" id="pBold"><b>B</b></button><button class="tog" id="pItalic"><i>I</i></button></label>
+  <label class="p-width">Stroke <input type="range" id="pWidth" min="0.5" max="12" step="0.5" value="2"></label>
+  <label class="p-fill">Fill <input type="checkbox" id="pFillOn"><input type="color" id="pFill" value="#fff4c2"></label>
+  <label class="p-field">Field type <select id="pFieldType"><option value="text">Text</option><option value="checkbox">Checkbox</option><option value="combobox">Dropdown</option><option value="listbox">List</option><option value="signature">Signature</option></select></label>
+  <span id="propsHint"></span>
+  <span class="grow"></span>
+  <span id="propsActions"></span>
+</div>
+
+<main>
+  <aside id="left">
+    <div class="tabs">
+      <button data-tab="library" class="on">Files</button>
+      <button data-tab="pages">Pages</button>
+      <button data-tab="outline">Bookmarks</button>
+      <button data-tab="inbox">Inbox <b id="inboxBadge"></b></button>
+    </div>
+    <section data-pane="library" class="on">
+      <div class="drop" id="dropLib">
+        <b>Drop files to open</b>
+        <small>PDF, Word, Excel, PowerPoint, images, PSD, ePub, text…</small>
+        <div class="row"><button class="primary" id="btnUpload">Upload</button><button id="btnBlank">New blank</button></div>
+        <label class="chk"><input type="checkbox" id="chkPsd"> Also make layered PSDs</label>
+      </div>
+      <div class="row bulk">
+        <button id="btnMerge" disabled>Merge selected</button>
+        <button id="btnCompare" disabled>Compare 2</button>
+      </div>
+      <ul id="docList"></ul>
+    </section>
+    <section data-pane="pages">
+      <div class="row wrap">
+        <button id="pgRotL" title="Rotate selected left">⟲</button>
+        <button id="pgRotR" title="Rotate selected right">⟳</button>
+        <button id="pgDup" title="Duplicate">⧉</button>
+        <button id="pgDel" title="Delete selected">🗑</button>
+        <button id="pgExtract" title="Extract selected to new file">⇱</button>
+        <button id="pgBlank" title="Insert blank page after current">＋</button>
+        <button id="pgInsert" title="Insert file after current">⤓</button>
+        <button id="pgSplit" title="Split document">✂</button>
+      </div>
+      <small class="hint">Drag to reorder · Shift/Ctrl-click to multi-select</small>
+      <div id="thumbs"></div>
+    </section>
+    <section data-pane="outline">
+      <div class="row"><button id="btnAddBm">Bookmark current page</button></div>
+      <ul id="tocList"></ul>
+      <h4>Attachments</h4>
+      <ul id="attList"></ul>
+      <button id="btnAttach">Attach a file</button>
+    </section>
+    <section data-pane="inbox">
+      <div class="drop" id="dropInbox">
+        <b>Drop into Inbox</b>
+        <small>Anything dropped here — or copied into the server's inbox folder — is converted to PDF, opened in the library and exported as layered PSDs.</small>
+        <button class="primary" id="btnInboxUpload">Choose files</button>
+      </div>
+      <div id="inboxPaths"></div>
+      <h4>Recent jobs</h4>
+      <ul id="jobList"></ul>
+      <h4>Output files</h4>
+      <ul id="outList"></ul>
+    </section>
+  </aside>
+
+  <div id="viewerWrap">
+    <div id="viewer"><div id="empty"><div class="hero">
+      <img src="/static/favicon.svg" alt="">
+      <h2>Drop a document anywhere</h2>
+      <p>Open a PDF (or Word, Excel, PowerPoint, images, PSD…) to edit text and images, annotate, sign, fill forms, organise pages, OCR, compress, protect and convert — including to layered Photoshop files.</p>
+      <button class="primary" id="btnUpload2">Open a file</button>
+    </div></div></div>
+  </div>
+
+  <aside id="right">
+    <details open><summary>Forms</summary>
+      <div id="formList" class="small">No form fields.</div>
+      <div class="row"><button data-act="flattenForms">Flatten forms</button></div>
+    </details>
+    <details open><summary>Comments</summary>
+      <ul id="annotList" class="small"></ul>
+      <div class="row"><button data-act="flattenAnnots">Flatten comments</button></div>
+    </details>
+    <details open><summary>Protect & redact</summary>
+      <div class="row wrap">
+        <button data-act="protect">Password protect</button>
+        <button data-act="redactSearch">Find & redact</button>
+        <button data-act="sanitize">Remove hidden info</button>
+      </div>
+      <div id="protState" class="small"></div>
+    </details>
+    <details open><summary>Optimize & scan</summary>
+      <div class="row wrap">
+        <button data-act="ocr">OCR (make searchable)</button>
+        <button data-act="compress">Compress</button>
+        <button data-act="grayscale">Grayscale</button>
+      </div>
+    </details>
+    <details open><summary>Page design</summary>
+      <div class="row wrap">
+        <button data-act="watermark">Watermark</button>
+        <button data-act="pagenums">Page numbers</button>
+        <button data-act="headerfooter">Header / footer</button>
+        <button data-act="bates">Bates numbering</button>
+        <button data-act="crop">Crop margins</button>
+        <button data-act="resize">Resize pages</button>
+        <button data-act="background">Background colour</button>
+      </div>
+    </details>
+    <details open><summary>Document</summary>
+      <div class="row wrap">
+        <button data-act="metadata">Properties</button>
+        <button data-act="readtext">Read aloud</button>
+        <button data-act="wordcount">Word count</button>
+        <button data-act="delete">Delete file</button>
+      </div>
+      <div id="docStats" class="small"></div>
+    </details>
+  </aside>
+</main>
+
+<div id="toasts"></div>
+<div id="modal" class="hidden"><div class="box"><h3 id="mTitle"></h3><div id="mBody"></div><div class="row end" id="mBtns"></div></div></div>
+<input type="file" id="fileAny" multiple hidden>
+<input type="file" id="fileImg" accept="image/*" hidden>
+<script src="/static/app.js"></script>
+</body>
+</html>

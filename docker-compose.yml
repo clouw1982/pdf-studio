@@ -1,0 +1,29 @@
+services:
+  pdfstudio:
+    build: .
+    image: pdfstudio:latest
+    container_name: pdfstudio
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${BIND_ADDR:-0.0.0.0}:${PORT:-8080}:8080"
+    volumes:
+      - ./data:/data
+
+  # Optional HTTPS with an automatic Let's Encrypt certificate.
+  # Set DOMAIN in .env, point the domain's DNS at the VM, then:
+  #   docker compose --profile https up -d
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [pdfstudio]
+
+volumes:
+  caddy_data:

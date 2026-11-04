@@ -1,0 +1,6 @@
+{$DOMAIN} {
+	request_body {
+		max_size 500MB
+	}
+	reverse_proxy pdfstudio:8080
+}
