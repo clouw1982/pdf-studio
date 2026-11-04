@@ -187,3 +187,23 @@ async function cmpRender() {
   }, h('span', { class: 'k ' + bx.kind }, bx.kind), `Area ${i + 1} · y ${Math.round(bx.rect[1])}pt`)));
   list.prepend(h('li', { class: 'small' }, `${d.boxes.length} changed area(s) · ${d.changed_pct < 0.1 && d.changed_pct > 0 ? '<0.1' : d.changed_pct.toFixed(2)}% of the page`));
 }
+
+/* ------------------------------------------------------------------ paste images / text onto the current PDF page */
+document.addEventListener('paste', async e => {
+  if (!S.id || e.target.closest?.('input,textarea,select,[contenteditable]') || !$('#modal').classList.contains('hidden')) return;
+  const dt = e.clipboardData; if (!dt) return;
+  const item = [...(dt.items || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'));
+  const text = dt.getData('text/plain');
+  if (!item && !(text && text.trim())) return;
+  e.preventDefault();
+  const pg = S.doc.pages[S.cur], cx = pg.w / 2, cy = pg.h / 2;
+  if (item) {
+    const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(item.getAsFile()); });
+    const [w, hh] = await imgSize(data); const k = Math.min(1, (pg.w * 0.6) / (w * 0.75), (pg.h * 0.6) / (hh * 0.75)); const W = w * 0.75 * k, H = hh * 0.75 * k;
+    await op({ op: 'add_image', page: S.cur, rect: [cx - W / 2, cy - H / 2, cx + W / 2, cy + H / 2], data, keep: true }, 'Pasting image…');
+    toast('Image pasted on page ' + (S.cur + 1) + ' — use Edit image to move or resize it');
+  } else {
+    await op({ op: 'add_text', page: S.cur, rect: [cx - 200, cy - 20, cx + 200, cy + 40], text: text.trim(), size: S.props.size, color: S.props.color, family: S.props.family }, 'Pasting text…');
+    toast('Text pasted on page ' + (S.cur + 1));
+  }
+});

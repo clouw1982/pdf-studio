@@ -1016,6 +1016,97 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { if (e.code === 'Space' && S.spaceDown) { S.spaceDown = false; view.style.cursor = { hand: 'grab', zoom: 'zoom-in', text: 'text', eyedropper: 'crosshair', move: 'default' }[S.tool] || 'crosshair'; } });
 
+/* ------------------------------------------------------------------ clipboard & drag-drop */
+S.clip = null; // internal clipboard: { canvas, x, y } or { text layer }
+function viewCenter() { return [(view.clientWidth / 2 - V.px) / V.z, (view.clientHeight / 2 - V.py) / V.z]; }
+function placeCanvasAsLayer(c, name, at) {
+  const k = Math.min(1, D.w / c.width, D.h / c.height);
+  const w = c.width * k, hh = c.height * k;
+  let x, y;
+  if (at) { [x, y] = at; } else { const [cx, cy] = viewCenter(); x = clamp(cx - w / 2, -w / 2, D.w - w / 2); y = clamp(cy - hh / 2, -hh / 2, D.h - hh / 2); }
+  pushHistory('Paste');
+  addLayer({ type: 'raster', name, canvas: c, x, y, w, h: hh }, Math.min(S.active + 1, D.layers.length));
+  setTool('move'); toast('Pasted as a new layer — drag to position');
+}
+async function pasteImageBlob(blob, name = 'Pasted image', at) {
+  const url = URL.createObjectURL(blob);
+  try { const img = await loadImage(url); const c = newCanvas(img.naturalWidth, img.naturalHeight); c.getContext('2d').drawImage(img, 0, 0); placeCanvasAsLayer(c, name, at); }
+  catch { toast('That clipboard item is not an image I can read', 'err'); }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 2000); }
+}
+function pasteText(text) {
+  const [cx, cy] = viewCenter(), o = S.opt;
+  pushHistory('Paste text');
+  addLayer({ type: 'text', name: text.split('\n')[0].slice(0, 48) || 'Text', text, x: cx - 100, y: cy, size: o.fsize, color: fg(), family: o.family, bold: o.bold, italic: o.italic, sx: 1 }, D.layers.length);
+  setTool('move'); toast('Pasted as a text layer');
+}
+function pasteInternal() {
+  if (!S.clip) return false;
+  if (S.clip.text) { pushHistory('Paste'); addLayer({ ...S.clip.text, id: lid(), name: S.clip.text.name + ' copy', x: S.clip.text.x + 10, y: S.clip.text.y + 10 }, D.layers.length); setTool('move'); return true; }
+  placeCanvasAsLayer(cloneCanvas(S.clip.canvas), 'Pasted', [S.clip.x, S.clip.y]); return true;
+}
+function copySelection(cut = false) {
+  const L = act(); if (!L) return;
+  if (L.type === 'text' && !S.sel) { S.clip = { text: { ...L } }; toast('Copied text layer'); if (cut) cmd('delLayer'); return; }
+  const src = L.type === 'text' ? toRaster(L) : L;
+  const full = newCanvas(D.w, D.h); full.getContext('2d').drawImage(src.canvas, src.x, src.y, src.w, src.h);
+  let bb = [0, 0, D.w, D.h];
+  if (S.sel) { applyMask(full); bb = selBounds() || bb; } else bb = [Math.max(0, Math.floor(src.x)), Math.max(0, Math.floor(src.y)), Math.min(D.w, Math.ceil(src.x + src.w)), Math.min(D.h, Math.ceil(src.y + src.h))];
+  const w = bb[2] - bb[0], hh = bb[3] - bb[1]; if (w < 1 || hh < 1) return;
+  const c = newCanvas(w, hh); c.getContext('2d').drawImage(full, -bb[0], -bb[1]);
+  S.clip = { canvas: c, x: bb[0], y: bb[1] };
+  // also put it on the system clipboard when the browser allows (HTTPS only)
+  if (navigator.clipboard && window.ClipboardItem && window.isSecureContext) c.toBlob(b => navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]).catch(() => { }));
+  toast(cut ? 'Cut' : 'Copied');
+  if (cut) { if (S.sel && L.type === 'raster') cmd('clearSel'); else if (!S.sel) cmd('delLayer'); }
+}
+document.addEventListener('copy', e => { if (e.target.closest?.('input,textarea')) return; e.preventDefault(); copySelection(false); });
+document.addEventListener('cut', e => { if (e.target.closest?.('input,textarea')) return; e.preventDefault(); copySelection(true); });
+document.addEventListener('paste', e => {
+  if (e.target.closest?.('input,textarea,[contenteditable]')) return;
+  const dt = e.clipboardData; if (!dt) return;
+  e.preventDefault(); commitTextEdit();
+  const items = [...(dt.items || [])];
+  const img = items.find(i => i.kind === 'file' && i.type.startsWith('image/'));
+  if (img) return pasteImageBlob(img.getAsFile());
+  const file = [...(dt.files || [])].find(f => f.type.startsWith('image/'));
+  if (file) return pasteImageBlob(file, file.name.replace(/\.[^.]+$/, ''));
+  const html = dt.getData('text/html'), m = html && html.match(/<img[^>]+src="(data:image\/[^"]+)"/i);
+  if (m) return fetch(m[1]).then(r => r.blob()).then(b => pasteImageBlob(b));
+  const text = dt.getData('text/plain');
+  // our own copy wins over plain text that isn't from outside
+  if (S.clip && (!text || !text.trim())) return pasteInternal();
+  if (text && text.trim()) return pasteText(text.trim());
+  if (!pasteInternal()) toast('Nothing to paste — copy an image or some text first', 'err');
+});
+CMD.copy = () => copySelection(false);
+CMD.cut = () => copySelection(true);
+CMD.paste = async () => {
+  if (navigator.clipboard?.read && window.isSecureContext) {
+    try {
+      for (const item of await navigator.clipboard.read()) {
+        const t = item.types.find(x => x.startsWith('image/')); if (t) return pasteImageBlob(await item.getType(t));
+        if (item.types.includes('text/plain')) { const tx = await (await item.getType('text/plain')).text(); if (tx.trim()) return pasteText(tx.trim()); }
+      }
+    } catch { }
+  }
+  if (!pasteInternal()) toast('Press Ctrl+V (⌘V on Mac) to paste from your clipboard', '', 4500);
+};
+// drag & drop image files onto the canvas
+const stageEl = $('#stage');
+stageEl.addEventListener('dragover', e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); stageEl.style.outline = '3px dashed var(--acc)'; stageEl.style.outlineOffset = '-8px'; } });
+stageEl.addEventListener('dragleave', () => { stageEl.style.outline = ''; });
+stageEl.addEventListener('drop', e => {
+  stageEl.style.outline = ''; const files = [...e.dataTransfer.files]; if (!files.length) return; e.preventDefault();
+  const p = toDoc(e);
+  files.forEach(async f => {
+    if (f.type.startsWith('image/')) {
+      const img = await loadImage(URL.createObjectURL(f)); const c = newCanvas(img.naturalWidth, img.naturalHeight); c.getContext('2d').drawImage(img, 0, 0);
+      const k = Math.min(1, D.w / c.width, D.h / c.height); placeCanvasAsLayer(c, f.name.replace(/\.[^.]+$/, ''), [p[0] - c.width * k / 2, p[1] - c.height * k / 2]);
+    } else toast(`${f.name}: use File → Open to open PSDs, PDFs and documents`, 'err', 5000);
+  });
+});
+
 /* ------------------------------------------------------------------ boot */
 (async () => {
   setTool('move');
