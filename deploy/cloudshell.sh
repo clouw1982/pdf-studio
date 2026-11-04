@@ -26,7 +26,9 @@ ZONE=${ZONE:-$(gcloud compute instances list --filter="name=$VM" --format="value
 say "Deploying to VM $VM ($ZONE)"
 
 say "Installing on the VM (first build takes ~5 minutes)…"
-OUT=$(gcloud compute ssh "$VM" --zone "$ZONE" --quiet --command "curl -fsSL $RAW/deploy/vm-setup.sh | sudo bash" | tee /dev/stderr)
+if ! OUT=$(gcloud compute ssh "$VM" --zone "$ZONE" --quiet --command "curl -fsSL $RAW/deploy/vm-setup.sh?$(date +%s) | sudo bash" | tee /dev/stderr); then
+  echo "❌ Setup on the VM failed — copy the output above and send it to Claude."; exit 1
+fi
 PORT=$(grep -o '^PDFSTUDIO_PORT=[0-9]*' <<<"$OUT" | tail -1 | cut -d= -f2); PORT=${PORT:-8080}
 PW=$(grep -o '^PDFSTUDIO_PASSWORD=.*' <<<"$OUT" | tail -1 | cut -d= -f2)
 

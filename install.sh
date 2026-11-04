@@ -21,8 +21,8 @@ fi
 
 if [[ ! -f .env ]]; then
   say "Creating .env with a random password…"
-  PW=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)
-  SK=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48)
+  PW=$(head -c 96 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-16)
+  SK=$(head -c 192 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-48)
   cat > .env <<ENV
 # Password for the web editor
 APP_PASSWORD=$PW

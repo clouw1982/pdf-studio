@@ -12,7 +12,7 @@ docker compose version >/dev/null 2>&1 || apt-get install -y -qq docker-compose-
 
 # Memory: LibreOffice/OCR builds like headroom; add swap on small VMs without any
 MEM=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)
-if [[ $MEM -lt 4000 ]] && ! swapon --show | grep -q .; then
+if [[ $MEM -lt 4000 && -z "$(swapon --show)" ]]; then
   say "Adding 4 GB swap (VM has ${MEM} MB RAM)…"
   fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
   grep -q /swapfile /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
@@ -25,7 +25,7 @@ cd $DIR
 if [[ -f .env ]]; then PORT=$(grep ^PORT= .env | cut -d= -f2)
 else
   PORT=8080
-  while ss -ltn | awk '{print $4}' | grep -qE "[:.]$PORT\$"; do PORT=$((PORT+10)); done
+  while [[ -n "$(ss -ltnH "sport = :$PORT")" ]]; do PORT=$((PORT+10)); done
 fi
 export PORT
 bash install.sh
